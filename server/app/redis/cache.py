@@ -1,5 +1,5 @@
 import json
-
+import os
 import aioredis
 from fastapi.encoders import jsonable_encoder
 
@@ -11,7 +11,7 @@ class Cache:
     @classmethod
     async def init_redis(cls):
         redisClient = await aioredis.create_redis_pool(
-            "redis://localhost", minsize=5, maxsize=10
+            os.getenv("REDIS", "redis://localhost"), minsize=5, maxsize=10
         )
         cls.redisClient = redisClient
 
