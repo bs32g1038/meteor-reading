@@ -14,7 +14,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 class ChapterSpider {
     constructor() {
         this.isInserting = false;
-        this.dbInsertMaxLimit = isDev ? 10 : 80;
+        this.dbInsertMaxLimit = isDev ? 10 : 270;
         this.request = request;
         this._chapterLinkListRule = chapterListRule;
         this._chapterDetailRule = chapterDetailRule;
