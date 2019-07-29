@@ -1,0 +1,8 @@
+{
+  "scripts":{
+    "dev": "nodemon -e py --ignore node_modules --watch ./app/** --exec uvicorn app.main:app --log-level debug"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.11"
+  }
+}

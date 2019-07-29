@@ -1,0 +1,66 @@
+version: '3'
+services:
+  server:
+    build: ./server
+    volumes:
+      - ../data/meteor-reading/statics:/code/statics
+      - ../data/meteor-reading/logs/server:/code/logs
+    depends_on:
+      - db
+      - redis
+    ports:
+      - 8000:8000
+    network_mode: "host"
+    environment:
+      BIND: 0.0.0.0:8000
+      LOG_LEVEL: error
+      APP_MODULE: app.main:app
+  webapp:
+    build: ./webapp
+    command: npm run start
+    depends_on:
+      - server
+    ports:
+      - 7000:7000
+    network_mode: "host"
+    volumes:
+      - ../data/meteor-reading/crawler-images:/public/crawler-images
+  crawler:
+    build: ./crawler
+    volumes:
+      - ../data/meteor-reading/crawler-images:/code/images
+      - ../data/meteor-reading/logs/crawler:/code/logs
+    command: npm run start
+    depends_on:
+      - db
+      - redis
+    network_mode: "host"
+    tty: true
+  nginx:
+    build: ./nginx
+    network_mode: "host"
+    depends_on:
+      - server
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ../data/meteor-reading/logs/nginx:/var/log/nginx
+  db:
+    volumes:
+      - ../data/meteor-reading/pg-db:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    image: postgres:11.2-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: read_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+  redis:
+    image: redis:5.0.5-alpine3.9
+    command: redis-server --appendonly yes
+    volumes:
+      - ../data/meteor-reading/redis:/data
+    ports:
+      - 6379:6379

@@ -1,0 +1,84 @@
+@import '../../styles/math.scss';
+
+@keyframes ball-spin {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    20% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+
+$loadingSize: 30px; // Loading容器的大小 
+$dotRadius: 6px; // 圆点半径 
+$dotNums: 12; // 圆点个数(需要和div.loading中子元素div个数对应起来) 
+$dotColor: #f36;
+.rd-loading {
+    width: 30px;
+    height: 30px;
+    z-index: 0;
+    font-size: 0;
+    line-height: 0;
+    position: relative;
+    vertical-align: middle;
+    font-size: 0;
+    margin: 50px auto;
+    border-radius: 50%;
+    &.circle {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+
+// &__circular {
+//     width: 100%;
+//     height: 100%;
+//     circle {
+//         stroke: currentColor;
+//         stroke-width: 3;
+//         stroke-linecap: round;
+//         animation: van-circular 1.5s ease-in-out infinite;
+//     }
+// }
+// &--white {
+//     .van-loading__spinner--circle {
+//         border-color: rgba(0, 0, 0, .1);
+//         border-top-color: rgba(255, 255, 255, .7);
+//     }
+//     .van-loading__spinner--gradient-circle {
+//         background-image: url('https://img.yzcdn.cn/vant/gradient-circle-white.png');
+//     }
+// }
+// }
+@keyframes rd-circular {
+    0% {
+        stroke-dasharray: 1, 200;
+        stroke-dashoffset: 0;
+    }
+    50% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -40;
+    }
+    100% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -120;
+    }
+}
+
+// .generate-spinner(@n,
+// @i: 1) when (@i =< @n) {
+//     .van-loading__spinner--spinner i:nth-of-type(@{i}) {
+//         opacity: 1 - (0.75 / 12) * (@i - 1);
+//         transform: rotate(@i * 30deg);
+//     }
+//     .generate-spinner(@n,
+//     (@i +1));
+// }
+// .generate-spinner(12);

@@ -1,0 +1,16 @@
+node_modules
+images/**
+!.gitkeep
+logs/**
+yarn.lock
+.vscode
+logs/
+npm-debug.log
+yarn-error.log
+package-lock.json
+coverage/
+.coverage.py
+venv
+__pycache__
+novel-server/static/upload/**
+dist

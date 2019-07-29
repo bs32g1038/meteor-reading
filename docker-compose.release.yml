@@ -1,0 +1,14 @@
+version: '3'
+services:
+  server:
+    build: ./server
+    image: bs32g1038/meteor-reading-server:v1
+  webapp:
+    build: ./webapp
+    image: bs32g1038/meteor-reading-webapp:v1
+  crawler:
+    build: ./crawler
+    image: bs32g1038/meteor-reading-crawler:v1
+  nginx:
+    build: ./nginx
+    image: bs32g1038/meteor-reading-nginx:v1

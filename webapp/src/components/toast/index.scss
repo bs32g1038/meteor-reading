@@ -1,0 +1,81 @@
+// Toast
+$toast-max-width: 70%;
+$toast-font-size: 14px;
+$toast-text-color: #fff;
+$toast-line-height: 20px;
+$toast-border-radius: 4px;
+$toast-background-color: rgba($text-color, .88);
+$toast-icon-size: 48px;
+$toast-text-min-width: 96px;
+$toast-text-padding: 8px 12px;
+$toast-default-padding: 15px;
+$toast-default-width: 90px;
+$toast-default-min-height: 90px;
+$toast-position-top-distance: 50px;
+$toast-position-bottom-distance: 50px;
+
+
+.van-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    color: $toast-text-color;
+    max-width: $toast-max-width;
+    font-size: $toast-font-size;
+    line-height: $toast-line-height;
+    border-radius: $toast-border-radius;
+    word-break: break-all;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: content-box;
+    transform: translate3d(-50%, -50%, 0);
+    background-color: $toast-background-color;
+
+    // hack for avoid max-width when use left & fixed
+    width: fit-content;
+
+    // allow newline charactor
+    white-space: pre-wrap;
+
+    // should not add pointer-events: none directly to body tag
+    // that will cause unexpected tap-highlight-color in mobile safari
+    &--unclickable {
+        * {
+            pointer-events: none;
+        }
+    }
+
+    &--text {
+        padding: $toast-text-padding;
+        min-width: $toast-text-min-width;
+    }
+
+    &--default {
+        width: $toast-default-width;
+        padding: $toast-default-padding;
+        min-height: $toast-default-min-height;
+
+        .van-toast__icon {
+            font-size: $toast-icon-size;
+        }
+
+        .van-loading {
+            margin: 10px 0;
+        }
+
+        .van-toast__text {
+            padding-top: 5px;
+        }
+    }
+
+    &--top {
+        top: $toast-position-top-distance;
+    }
+
+    &--bottom {
+        top: auto;
+        bottom: $toast-position-bottom-distance;
+    }
+}

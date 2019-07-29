@@ -1,0 +1,17 @@
+language: node_js
+
+node_js:
+  - "10.16.0"
+
+services:
+  - docker
+
+install: true
+
+script: true
+
+deploy:
+  provider: script
+  script: bash scripts/build-push.sh
+  on:
+    branch: master
