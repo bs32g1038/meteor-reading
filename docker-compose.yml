@@ -9,7 +9,6 @@ services:
       - db
       - redis
     environment:
-      BIND: 0.0.0.0:8000
       LOG_LEVEL: error
       APP_MODULE: app.main:app
       REDIS: redis://redis
