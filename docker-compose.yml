@@ -8,9 +8,6 @@ services:
     depends_on:
       - db
       - redis
-    ports:
-      - 8000:8000
-    network_mode: "host"
     environment:
       BIND: 0.0.0.0:8000
       LOG_LEVEL: error
@@ -20,25 +17,20 @@ services:
     command: npm run start
     depends_on:
       - server
-    ports:
-      - 7000:7000
-    network_mode: "host"
     volumes:
       - ../data/meteor-reading/crawler-images:/public/crawler-images
   crawler:
     image: bs32g1038/meteor-reading-crawler:v1
     volumes:
       - ../data/meteor-reading/crawler-images:/code/images
-      - ../data/meteor-reading/logs/crawler:/code/logs
+      - ../data/meteor-reading/logs/crawler:/code/src/logs
     command: npm run start
     depends_on:
       - db
       - redis
-    network_mode: "host"
     tty: true
   nginx:
     image: bs32g1038/meteor-reading-nginx:v1
-    network_mode: "host"
     depends_on:
       - server
     ports:
