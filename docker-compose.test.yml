@@ -8,21 +8,17 @@ services:
     depends_on:
       - db
       - redis
-    ports:
-      - 8000:8000
-    network_mode: "host"
     environment:
       BIND: 0.0.0.0:8000
       LOG_LEVEL: error
       APP_MODULE: app.main:app
+      REDIS: redis://redis
+      DB: postgresql://postgres:123456@db/read_dev
   webapp:
     build: ./webapp
     command: npm run start
     depends_on:
       - server
-    ports:
-      - 7000:7000
-    network_mode: "host"
     volumes:
       - ../data/meteor-reading/crawler-images:/public/crawler-images
   crawler:
@@ -38,7 +34,6 @@ services:
     tty: true
   nginx:
     build: ./nginx
-    network_mode: "host"
     depends_on:
       - server
     ports:

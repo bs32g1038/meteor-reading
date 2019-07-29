@@ -12,6 +12,8 @@ services:
       BIND: 0.0.0.0:8000
       LOG_LEVEL: error
       APP_MODULE: app.main:app
+      REDIS: redis://redis
+      DB: postgresql://postgres:123456@db/read_dev
   webapp:
     image: bs32g1038/meteor-reading-webapp:v1
     command: npm run start
