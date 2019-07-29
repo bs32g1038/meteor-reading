@@ -38,6 +38,7 @@ services:
     image: bs32g1038/meteor-reading-nginx:v1
     depends_on:
       - server
+      - webapp
     ports:
       - 80:80
       - 443:443
