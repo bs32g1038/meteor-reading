@@ -4,6 +4,6 @@ exports.dbConfig = {
     database: 'read_dev',
     username: 'postgres',
     password: '123456',
-    host: '127.0.0.1',
+    host: process.env.DB_HOST || '127.0.0.1',
     dialect: 'postgres', // 'mysql'|'sqlite'|'postgres'|'mssql'
 };

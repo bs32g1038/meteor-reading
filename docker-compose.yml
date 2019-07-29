@@ -20,7 +20,7 @@ services:
     depends_on:
       - server
     volumes:
-      - ../data/meteor-reading/crawler-images:/public/crawler-images
+      - ../data/meteor-reading/crawler-images:/code/public/crawler-images
   crawler:
     image: bs32g1038/meteor-reading-crawler:v1
     volumes:
@@ -30,6 +30,9 @@ services:
     depends_on:
       - db
       - redis
+    environment:
+      REDIS_HOST: redis
+      DB_HOST: db
     tty: true
   nginx:
     image: bs32g1038/meteor-reading-nginx:v1

@@ -3,7 +3,7 @@ const logger = require('../logger');
 
 const redis = require("redis"),
     client = redis.createClient({
-        host: '127.0.0.1',
+        host: process.env.REDIS_HOST || '127.0.0.1',
         port: 6379,
         db: 8
     });
