@@ -9,7 +9,6 @@ const redis = require("redis"),
     });
 client.on("error", function (err) {
     logger.system.error("Error " + err);
-    process.exit(1);
 });
 
 const llenAsync = promisify(client.llen).bind(client);
