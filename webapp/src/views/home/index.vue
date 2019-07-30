@@ -275,7 +275,7 @@ export default {
 }
 
 .module-body /deep/ .van-tabs--card {
-    padding-top: 0.7rem;
+    padding-top: 0;
 }
 
 .module-body /deep/ .NovelListItem {
