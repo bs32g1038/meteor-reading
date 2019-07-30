@@ -4,7 +4,6 @@ images/**
 logs/**
 yarn.lock
 .vscode
-logs/
 npm-debug.log
 yarn-error.log
 package-lock.json
