@@ -61,3 +61,5 @@ services:
       - ../data/meteor-reading/redis:/data
     ports:
       - 6379:6379
+    sysctls:
+      net.core.somaxconn: '1024'
