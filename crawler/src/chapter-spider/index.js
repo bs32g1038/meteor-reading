@@ -14,12 +14,12 @@ const isDev = process.env.NODE_ENV !== 'production';
 class ChapterSpider {
     constructor() {
         this.isInserting = false;
-        this.dbInsertMaxLimit = isDev ? 10 : 180;
+        this.dbInsertMaxLimit = isDev ? 10 : 200;
         this.request = request;
         this._chapterLinkListRule = chapterListRule;
         this._chapterDetailRule = chapterDetailRule;
         this.CHAPTER_LIST_FETCH_TASK_LIMIT = 1;
-        this.CHAPTER_CONTENT_FETCH_TASK_LIMIT = 30;
+        this.CHAPTER_CONTENT_FETCH_TASK_LIMIT = 20;
     }
     async start() {
         logger.chapter.info(`启动小说章节抓取爬虫...`);
