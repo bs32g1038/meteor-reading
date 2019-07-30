@@ -22,37 +22,32 @@ class ChapterSpider {
         this.CHAPTER_CONTENT_FETCH_TASK_LIMIT = 20;
     }
     async start() {
-        logger.chapter.info(`启动小说章节抓取爬虫...`);
-        logger.chapter.info(`正在写入遗留数据...`);
-        await this.writeData(-1);
-        logger.chapter.info('处理遗留数据完毕！');
+        logger.chapter.info('启动小说章节抓取爬虫...');
         await this.crawlChapters();
-        await this.writeData(-1);
         logger.chapter.info('爬取数据结束！');
     }
     async crawlChapters() {
         const urls = await redis.smembersAsync(constant.CHAPTER_PAGE_URL_LIST);
         const fn = async url => {
-            await delay(50 * Math.random());
-            return this.request(url)
-                .then(async htmlStr => {
-                    const novelId = await redis.hgetAsync(constant.CHAPTER_PAGE_URL_MD5_MAP_NOVEL_ID, utils.md5(url));
-                    const len = await redis.hgetAsync(constant.NOVEL_CHAPTER_COUNT_SET, utils.md5(url));
-                    const arr = this._chapterLinkListRule.parse(htmlStr);
-                    if (arr.length <= len) {
-                        logger.chapter.info(`已经缓存小说${novelId}的所有章节！`);
-                        return;
-                    } else {
-                        logger.chapter.info(`正在抓取小说的章节数据\n小说章节列表url：${url}`);
-                    }
-                    const fn = data => {
-                        return this.crawlChapterContent({ ...data, novelId, url });
-                    };
-                    return await createTask(arr, this.CHAPTER_CONTENT_FETCH_TASK_LIMIT, fn);
-                })
-                .catch(err => {
-                    logger.chapter_error.error(url, err.message);
-                });
+            try {
+                const htmlStr = await this.request(url);
+                const novelId = await redis.hgetAsync(constant.CHAPTER_PAGE_URL_MD5_MAP_NOVEL_ID, utils.md5(url));
+                const len = await redis.hgetAsync(constant.NOVEL_CHAPTER_COUNT_SET, utils.md5(url));
+                const arr = this._chapterLinkListRule.parse(htmlStr);
+                if (arr.length <= len) {
+                    logger.chapter.info(`已经缓存小说${novelId}的所有章节！`);
+                    return;
+                } else {
+                    logger.chapter.info(`正在抓取小说的章节数据\n小说章节列表url：${url}`);
+                }
+                const fn = async data => {
+                    await delay(70 * Math.random());
+                    return this.crawlChapterContent({ ...data, novelId, url });
+                };
+                return await createTask(arr, this.CHAPTER_CONTENT_FETCH_TASK_LIMIT, fn);
+            } catch (error) {
+                logger.chapter_error.error(url, error.message);
+            }
         };
         await createTask(urls, this.CHAPTER_LIST_FETCH_TASK_LIMIT, fn);
     }
@@ -62,27 +57,31 @@ class ChapterSpider {
         // 判断是否存在，该用于多网站爬取的时候的去重。
         if (await redis.sismemberAsync(constant.CHAPTER_FINGERPRINT, fingerprint)) {
             await redis.saddAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl));
-            return;
+            return Promise.resolve();
         }
 
         if (await redis.sismemberAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl))) {
-            return;
+            return Promise.resolve();
         }
-        return this.request(data.chapterUrl).then(async htmlStr => {
-            const res = this._chapterDetailRule.parse(htmlStr);
-            redis.lpush(
-                constant.CACHE_CHAPTER_LIST,
-                JSON.stringify({
-                    ...data,
-                    sum_words: res.content.replace(/^\s+|<br>|\s+$/g, '').length,
-                    novel_id: data.novelId,
-                    content: res.content,
-                    url: data.url,
-                    fingerprint,
-                })
-            );
-            await this.writeData(this.dbInsertMaxLimit);
-        });
+        return this.request(data.chapterUrl)
+            .then(async htmlStr => {
+                const res = this._chapterDetailRule.parse(htmlStr);
+                await redis.lpushAsync(
+                    constant.CACHE_CHAPTER_LIST,
+                    JSON.stringify({
+                        ...data,
+                        sum_words: res.content.replace(/^\s+|<br>|\s+$/g, '').length,
+                        novel_id: data.novelId,
+                        content: res.content,
+                        url: data.url,
+                        fingerprint,
+                    })
+                );
+                return Promise.resolve();
+            })
+            .catch(error => {
+                logger.chapter_error.error(data.chapterUrl, error.message);
+            });
     }
     async getCacheChapterData(limit) {
         let set = new Set();
@@ -117,7 +116,7 @@ class ChapterSpider {
             }
             await this.writeDB(data.arr, data.novelIdArr);
             await data.arr.map(async item => {
-                new Promise(resolve => {
+                return new Promise(resolve => {
                     redis
                         .multi()
                         .hincrby(constant.NOVEL_CHAPTER_COUNT_SET, utils.md5(item.url), 1)
@@ -137,58 +136,52 @@ class ChapterSpider {
                         });
                 });
             });
-            maxLimit == -1
-                ? redis.del(constant.CACHE_CHAPTER_LIST)
-                : redis.ltrim(constant.CACHE_CHAPTER_LIST, maxLimit, -1);
+            await (maxLimit == -1
+                ? redis.delAsync(constant.CACHE_CHAPTER_LIST)
+                : redis.ltrimAsync(constant.CACHE_CHAPTER_LIST, maxLimit, -1));
             this.isInserting = false;
         }
+        return len;
     }
     async writeDB(arr, novelIdArr) {
         try {
             return await models.db.transaction(function(t) {
-                return models.chapter
-                    .bulkCreate(
-                        arr,
-                        {
-                            ignoreDuplicates: true,
-                        },
-                        { transaction: t }
-                    )
-                    .then(function() {
-                        const pArr = [];
-                        for (let novelId of novelIdArr) {
-                            pArr.push(
-                                models.chapter
-                                    .findOne({
+                const updateAction = () => {
+                    const pArr = [];
+                    for (let novelId of novelIdArr) {
+                        pArr.push(
+                            models.chapter
+                                .findOne({
+                                    where: { novel_id: novelId },
+                                    attributes: ['id'],
+                                    order: [['index', 'DESC']],
+                                })
+                                .then(async chapter => {
+                                    const sum_words = await models.chapter.sum('sum_words', {
                                         where: {
                                             novel_id: novelId,
                                         },
-                                        attributes: ['id'],
-                                        order: [['index', 'DESC']],
-                                    })
-                                    .then(async chapter => {
-                                        const sum_words = await models.chapter.sum('sum_words', {
+                                    });
+                                    return models.novel.update(
+                                        {
+                                            last_chapter_id: chapter.id,
+                                            sum_words,
+                                        },
+                                        {
                                             where: {
-                                                novel_id: novelId,
+                                                id: novelId,
                                             },
-                                        });
-                                        return models.novel.update(
-                                            {
-                                                last_chapter_id: chapter.id,
-                                                sum_words,
-                                            },
-                                            {
-                                                where: {
-                                                    id: novelId,
-                                                },
-                                            },
-                                            { transaction: t }
-                                        );
-                                    })
-                            );
-                        }
-                        return Promise.all(pArr);
-                    });
+                                        },
+                                        { transaction: t }
+                                    );
+                                })
+                        );
+                    }
+                    return Promise.all(pArr);
+                };
+                return models.chapter
+                    .bulkCreate(arr, { ignoreDuplicates: true }, { transaction: t })
+                    .then(updateAction);
             });
         } catch (error) {
             if (error.code != 11000) {

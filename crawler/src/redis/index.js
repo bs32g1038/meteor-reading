@@ -1,14 +1,14 @@
 const { promisify } = require('util');
 const logger = require('../logger');
 
-const redis = require("redis"),
+const redis = require('redis'),
     client = redis.createClient({
         host: process.env.REDIS_HOST || '127.0.0.1',
         port: 6379,
-        db: 8
+        db: 8,
     });
-client.on("error", function (err) {
-    logger.system.error("Error " + err);
+client.on('error', function(err) {
+    logger.system.error('Error ' + err);
 });
 
 const llenAsync = promisify(client.llen).bind(client);
@@ -22,8 +22,15 @@ const hincrbyAsync = promisify(client.hincrby).bind(client);
 const hgetallAsync = promisify(client.hgetall).bind(client);
 const hkeysAsync = promisify(client.hkeys).bind(client);
 const sscanAsync = promisify(client.sscan).bind(client);
+const lpushAsync = promisify(client.lpush).bind(client);
+const delAsync = promisify(client.del).bind(client);
+const ltrimAsync = promisify(client.ltrim).bind(client);
+
 
 Object.assign(client, {
+    ltrimAsync,
+    delAsync,
+    lpushAsync,
     llenAsync,
     hexistsAsync,
     lrangeAsync,
@@ -34,7 +41,7 @@ Object.assign(client, {
     hincrbyAsync,
     hgetallAsync,
     hkeysAsync,
-    sscanAsync
+    sscanAsync,
 });
 
 module.exports = client;
