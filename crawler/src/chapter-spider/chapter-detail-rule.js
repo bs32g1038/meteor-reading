@@ -1,7 +1,4 @@
-const cheerio = require('cheerio');
-
-exports.parse = (document) => {
-    const $ = cheerio.load(document, { decodeEntities: false });
+exports.parse = ($) => {
     return {
         content: $('#contents').html()
     };

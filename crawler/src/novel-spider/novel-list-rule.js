@@ -5,14 +5,12 @@
  * return []
  */
 const config = require('../config');
-const cheerio = require('cheerio');
 
 exports.getAimUrl = (page) => {
     return config.AIM_LIST_PAGE_URL.replace('${page}', page);
 };
 
-exports.parse = (document) => {
-    const $ = cheerio.load(document);
+exports.parse = ($) => {
     const arr = [];
     $('#content').find('tr').each(function (i) {
         if (i == 0) {

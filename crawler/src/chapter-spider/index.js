@@ -4,10 +4,10 @@ const constant = require('../constant');
 const redis = require('../redis');
 const models = require('../models');
 const logger = require('../logger');
-const { createTask, request, trimAllSpace } = require('../utils');
+const { request, trimAllSpace } = require('../utils');
 const chapterListRule = require('./chapter-list-rule');
 const chapterDetailRule = require('./chapter-detail-rule');
-const delay = require('delay');
+const Crawler = require('../crawler');
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -21,51 +21,68 @@ class ChapterSpider {
         this.CHAPTER_LIST_FETCH_TASK_LIMIT = 1;
         this.CHAPTER_CONTENT_FETCH_TASK_LIMIT = 20;
     }
+
     async start() {
         logger.chapter.info('启动小说章节抓取爬虫...');
         await this.crawlChapters();
         logger.chapter.info('爬取数据结束！');
     }
+
     async crawlChapters() {
         const urls = await redis.smembersAsync(constant.CHAPTER_PAGE_URL_LIST);
-        const fn = async url => {
-            try {
-                const htmlStr = await this.request(url);
-                const novelId = await redis.hgetAsync(constant.CHAPTER_PAGE_URL_MD5_MAP_NOVEL_ID, utils.md5(url));
-                const len = await redis.hgetAsync(constant.NOVEL_CHAPTER_COUNT_SET, utils.md5(url));
-                const arr = this._chapterLinkListRule.parse(htmlStr);
-                if (arr.length <= len) {
-                    logger.chapter.info(`已经缓存小说${novelId}的所有章节！`);
-                    return;
-                } else {
-                    logger.chapter.info(`正在抓取小说的章节数据\n小说章节列表url：${url}`);
-                }
-                const fn = async data => {
-                    await delay(70 * Math.random());
-                    return this.crawlChapterContent({ ...data, novelId, url });
-                };
-                return await createTask(arr, this.CHAPTER_CONTENT_FETCH_TASK_LIMIT, fn);
-            } catch (error) {
-                logger.chapter_error.error(url, error.message);
-            }
-        };
-        await createTask(urls, this.CHAPTER_LIST_FETCH_TASK_LIMIT, fn);
+        const _crawler = this.getChapterCrawler();
+        for (let url of urls) {
+            _crawler.queue(url, url);
+        }
+        await _crawler.start();
     }
-    async crawlChapterContent(data) {
-        const fingerprint = utils.md5(data.novelId + trimAllSpace(data.title));
 
-        // 判断是否存在，该用于多网站爬取的时候的去重。
-        if (await redis.sismemberAsync(constant.CHAPTER_FINGERPRINT, fingerprint)) {
-            await redis.saddAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl));
-            return Promise.resolve();
-        }
+    getChapterCrawler() {
+        return new Crawler({
+            maxConnections: this.CHAPTER_LIST_FETCH_TASK_LIMIT,
+            rateLimit: 50 * Math.random(),
+            callback: async (error, $, url) => {
+                if (error) {
+                    return logger.chapter_error.error(url, error.message);
+                }
+                const arr = this._chapterLinkListRule.parse($);
+                const novelId = await redis.hgetAsync(constant.CHAPTER_PAGE_URL_MD5_MAP_NOVEL_ID, utils.md5(url));
 
-        if (await redis.sismemberAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl))) {
-            return Promise.resolve();
-        }
-        return this.request(data.chapterUrl)
-            .then(async htmlStr => {
-                const res = this._chapterDetailRule.parse(htmlStr);
+                logger.chapter.info(`正在抓取小说${novelId}的章节数据\n小说章节列表url：${url}`);
+                
+                const _chapterContentCrawler = this.getChapterContentCrawler();
+
+                for (let data of arr) {
+                    const fingerprint = utils.md5(data.novelId + trimAllSpace(data.title));
+
+                    // 判断是否存在，该用于多网站爬取的时候的去重。
+                    if (await redis.sismemberAsync(constant.CHAPTER_FINGERPRINT, fingerprint)) {
+                        await redis.saddAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl));
+                        return Promise.resolve();
+                    }
+
+                    if (await redis.sismemberAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl))) {
+                        return Promise.resolve();
+                    }
+                    if (!data) {
+                        continue;
+                    }
+                    _chapterContentCrawler.queue(data.chapterUrl, { ...data, fingerprint, novelId, url });
+                }
+                return await _chapterContentCrawler.start();
+            },
+        });
+    }
+
+    getChapterContentCrawler() {
+        return new Crawler({
+            maxConnections: this.CHAPTER_CONTENT_FETCH_TASK_LIMIT,
+            rateLimit: 50 * Math.random(),
+            callback: async (error, $, data) => {
+                if (error) {
+                    return logger.chapter_error.error(data.chapterUrl, error.message);
+                }
+                const res = this._chapterDetailRule.parse($);
                 await redis.lpushAsync(
                     constant.CACHE_CHAPTER_LIST,
                     JSON.stringify({
@@ -74,15 +91,12 @@ class ChapterSpider {
                         novel_id: data.novelId,
                         content: res.content,
                         url: data.url,
-                        fingerprint,
                     })
                 );
-                return Promise.resolve();
-            })
-            .catch(error => {
-                logger.chapter_error.error(data.chapterUrl, error.message);
-            });
+            },
+        });
     }
+
     async getCacheChapterData(limit) {
         let set = new Set();
         let arr = await redis.lrangeAsync(constant.CACHE_CHAPTER_LIST, 0, limit);
@@ -100,6 +114,7 @@ class ChapterSpider {
             novelIdArr: set,
         };
     }
+
     async writeData(maxLimit) {
         const len = await redis.llenAsync(constant.CACHE_CHAPTER_LIST);
         if (len > maxLimit && !this.isInserting) {
@@ -119,7 +134,6 @@ class ChapterSpider {
                 return new Promise(resolve => {
                     redis
                         .multi()
-                        .hincrby(constant.NOVEL_CHAPTER_COUNT_SET, utils.md5(item.url), 1)
                         .sadd(constant.CHAPTER_URL_MD5_SET, utils.md5(item.chapterUrl))
                         .sadd(
                             constant.CHAPTER_FINGERPRINT,
@@ -143,39 +157,30 @@ class ChapterSpider {
         }
         return len;
     }
+
     async writeDB(arr, novelIdArr) {
         try {
             return await models.db.transaction(function(t) {
                 const updateAction = () => {
                     const pArr = [];
                     for (let novelId of novelIdArr) {
-                        pArr.push(
-                            models.chapter
-                                .findOne({
+                        const _temp = models.chapter
+                            .findOne({
+                                where: { novel_id: novelId },
+                                attributes: ['id'],
+                                order: [['index', 'DESC']],
+                            })
+                            .then(async chapter => {
+                                const sum_words = await models.chapter.sum('sum_words', {
                                     where: { novel_id: novelId },
-                                    attributes: ['id'],
-                                    order: [['index', 'DESC']],
-                                })
-                                .then(async chapter => {
-                                    const sum_words = await models.chapter.sum('sum_words', {
-                                        where: {
-                                            novel_id: novelId,
-                                        },
-                                    });
-                                    return models.novel.update(
-                                        {
-                                            last_chapter_id: chapter.id,
-                                            sum_words,
-                                        },
-                                        {
-                                            where: {
-                                                id: novelId,
-                                            },
-                                        },
-                                        { transaction: t }
-                                    );
-                                })
-                        );
+                                });
+                                return models.novel.update(
+                                    { last_chapter_id: chapter.id, sum_words },
+                                    { where: { id: novelId } },
+                                    { transaction: t }
+                                );
+                            });
+                        pArr.push(_temp);
                     }
                     return Promise.all(pArr);
                 };

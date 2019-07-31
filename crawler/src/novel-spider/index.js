@@ -1,7 +1,6 @@
 'use strict';
-const axios = require('../axios');
 const utils = require('utility');
-const { createTask, request, trimAllSpace } = require('../utils');
+const { trimAllSpace } = require('../utils');
 const constant = require('../constant');
 const redis = require('../redis');
 const models = require('../models');
@@ -10,7 +9,7 @@ const path = require('path');
 const logger = require('../logger');
 const novelListRule = require('./novel-list-rule');
 const novelDetailRule = require('./novel-detail-rule');
-const delay = require('delay');
+const Crawler = require('../crawler');
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -19,95 +18,127 @@ const isDev = process.env.NODE_ENV !== 'production';
  */
 class NovelSpider {
     constructor() {
-        this.request = request;
         this.isInserting = false;
         this._novelListRule = novelListRule;
         this._novelDetailRule = novelDetailRule;
         this.count = 1;
-        this.page = isDev ? 4 : 40;
+        this.page = isDev ? 1 : 40;
         this.dbInsertMaxLimit = isDev ? 10 : 200;
     }
+
     async start() {
         try {
-            logger.chapter.info('启动小说抓取爬虫...');
+            logger.novel.info('启动小说抓取爬虫...');
             await this.crawlNovelList();
             logger.novel.info('爬取数据结束！');
         } catch (error) {
             console.log(error);
         }
     }
+
     async crawlNovelList() {
-        const urls = [];
+        const _novelListCrawler = this.getNovelCrawler();
         for (let i = 1; i <= this.page; i++) {
-            urls.push(this._novelListRule.getAimUrl(i));
+            _novelListCrawler.queue(this._novelListRule.getAimUrl(i));
         }
-        const fn = url => {
-            return this.request(url)
-                .then(htmlStr => this.parse(htmlStr))
-                .catch(err => {
-                    logger.novel_error.error(err.message);
-                });
-        };
-        await createTask(urls, 1, fn);
+        return await _novelListCrawler.start();
     }
-    async parse(htmlStr) {
-        let items = this._novelListRule.parse(htmlStr);
-        const fn = async item => {
+
+    getNovelCrawler() {
+        return new Crawler({
+            maxConnections: 1,
+            rateLimit: 50 * Math.random(),
+            callback: async (error, $) => {
+                if (error) {
+                    return logger.novel_error.error(error.message);
+                }
+                let items = this._novelListRule.parse($);
+                return await this.crawlNovelDetail(items);
+            },
+        });
+    }
+
+    async crawlNovelDetail(items) {
+        const _novelDetailCrawler = this.getNovelDetailCrawler();
+        for (const item of items) {
             if (await redis.sismemberAsync(constant.NOVEL_IMAGE_URL_MD5_SET, utils.md5(item.url))) {
                 logger.novel.info(`已经缓存小说：${item.name}\n小说链接：${item.url}`);
                 return;
             }
             logger.novel.info(`正在抓取小说：${item.name}\n小说链接：${item.url}`);
-            return await this.crawlNovelDetail(item);
-        };
-        await createTask(items, 10, fn);
+            _novelDetailCrawler.queue(item.url, item);
+        }
+        return await _novelDetailCrawler.start();
     }
-    async crawlNovelDetail(item) {
-        await delay(50 * Math.random());
-        return this.request(item.url)
-            .then(async htmlStr => {
-                const id = await redis.hincrbyAsync('globl_id', 'novel_id', 2);
-                const detailData = this._novelDetailRule.parse(htmlStr);
-                if (!detailData) {
-                    return;
+
+    getNovelDetailCrawler() {
+        return new Crawler({
+            rateLimit: 50 * Math.random(),
+            maxConnections: 10,
+            callback: async (error, $, item) => {
+                if (error) {
+                    return logger.novel_error.error(item.url, error.message);
                 }
-                const fingerprint = utils.md5(trimAllSpace(item.name) + trimAllSpace(detailData.author));
+                return await this.parseDetailData($, item);
+            },
+        });
+    }
 
-                // 判断是否存在，该用于多网站爬取的时候的去重。
-                if (await redis.sismemberAsync(constant.NOVEL_FINGERPRINT, fingerprint)) {
-                    return this.cacheToRedis({
-                        ...item,
-                        id,
-                        fingerprint,
-                    });
-                }
+    async parseDetailData($, item) {
+        const detailData = this._novelDetailRule.parse($);
 
-                await this.downNovelImage(fingerprint, detailData.picUrl);
+        if (!detailData) {
+            return;
+        }
 
-                let tmp = {
-                    ...item,
-                    ...detailData,
-                    tag_id: detailData.tagId,
-                    sum_words: detailData.sumWords,
-                    id,
-                    fingerprint,
-                    pic: fingerprint + '.jpg',
-                };
-                redis.lpush(constant.CACHE_NOVEL_LIST, JSON.stringify(tmp));
-                await this.writeData(this.dbInsertMaxLimit);
-            })
-            .catch(error => {
-                logger.novel_error.error(error.message);
+        let id = await redis.hgetAsync(constant.CHAPTER_PAGE_URL_MD5_MAP_NOVEL_ID, utils.md5(item.chapterListUrl));
+        if (id) {
+            id = parseInt(id);
+        } else {
+            id = await redis.hincrbyAsync('globl_id', 'novel_id', 2);
+        }
+
+        const fingerprint = utils.md5(trimAllSpace(item.name) + trimAllSpace(detailData.author));
+
+        // 判断是否存在，该用于多网站爬取的时候的去重。
+        if (await redis.sismemberAsync(constant.NOVEL_FINGERPRINT, fingerprint)) {
+            return this.cacheToRedis({
+                ...item,
+                id,
+                fingerprint,
             });
+        }
+
+        await this.downNovelImage(detailData.picUrl, fingerprint);
+
+        let tmp = {
+            ...item,
+            ...detailData,
+            tag_id: detailData.tagId,
+            sum_words: detailData.sumWords,
+            id,
+            fingerprint,
+            pic: fingerprint + '.jpg',
+        };
+        return await redis.lpushAsync(constant.CACHE_NOVEL_LIST, JSON.stringify(tmp));
     }
-    downNovelImage(id, url) {
-        return axios({ method: 'get', url: url, responseType: 'stream' })
-            .then(function(response) {
-                response.data.pipe(fs.createWriteStream(path.resolve(__dirname, '../../images/' + id + '.jpg')));
-                return Promise.resolve(true);
-            })
-            .catch(err => {});
+
+    async downNovelImage(picUrl, fingerprint) {
+        const _downNovelImageCrawler = new Crawler({
+            maxConnections: 1,
+            cheerio: false,
+            request: { method: 'GET', responseType: 'stream' },
+            callback: async (error, res, id) => {
+                if (error) {
+                    return logger.novel_error.error(error.message);
+                }
+                return res.pipe(fs.createWriteStream(path.resolve(__dirname, '../../images/' + id + '.jpg')));
+            },
+        });
+        _downNovelImageCrawler.queue(picUrl, fingerprint);
+        return await _downNovelImageCrawler.start();
     }
+
     async getCacheNovelData(limit) {
         const arr = await redis.lrangeAsync(constant.CACHE_NOVEL_LIST, 0, limit);
         return !arr || arr.length <= 0
@@ -116,6 +147,7 @@ class NovelSpider {
                 return JSON.parse(item);
             });
     }
+
     async writeData(maxLimit) {
         const len = await redis.llenAsync(constant.CACHE_NOVEL_LIST);
         if (len >= maxLimit && !this.isInserting) {
@@ -141,6 +173,7 @@ class NovelSpider {
         }
         return len;
     }
+
     async writeDB(arr) {
         try {
             return await models.novel.bulkCreate(arr, {
@@ -153,6 +186,7 @@ class NovelSpider {
             }
         }
     }
+
     cacheToRedis(item) {
 
         /**
@@ -175,7 +209,7 @@ class NovelSpider {
                         id: item.id,
                     })
                 )
-                .exec(async function(err, replies) {
+                .exec(async function(err) {
                     if (err) {
                         return logger.system.info('redis错误', err);
                     }

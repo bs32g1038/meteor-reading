@@ -1,9 +1,7 @@
 const pathToRegexp = require('path-to-regexp');
-const cheerio = require('cheerio');
 const logger = require('../logger');
 
-exports.parse = (document) => {
-    const $ = cheerio.load(document);
+exports.parse = ($) => {
     let arr = [];
     $('#at').find('td').each(function (i) {
         const title = $(this).children('a').text().trim();

@@ -29,9 +29,6 @@ exports.NOVEL_IMAGE_URL_URL = "NOVEL_IMAGE_URL_URL";
 // 小说章节数据临时存放列表
 exports.CACHE_CHAPTER_LIST = 'CACHE_CHAPTER_LIST';
 
-// 根据章节总数数判断，章节列表是否被抓取
-exports.NOVEL_CHAPTER_COUNT_SET = 'NOVEL_CHAPTER_COUNT_SET';
-
 // 小说指纹，由小说名 + 作者 经md5生成。
 exports.NOVEL_FINGERPRINT = 'NOVEL_FINGERPRINT';
 

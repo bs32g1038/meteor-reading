@@ -5,7 +5,6 @@
  * return {}
  */
 const Joi = require('@hapi/joi');
-const cheerio = require('cheerio');
 
 const schema = Joi.object().keys({
     summary: Joi.string().default(''),
@@ -32,8 +31,7 @@ const TAG = {
 
 const STATUS = { '连载中': 0, '完本': 1 };
 
-exports.parse = (document) => {
-    const $ = cheerio.load(document);
+exports.parse = ($) => {
     const trs = $('#at').find('tr');
     const summary = $('#sidename').prev('p').text().trim();
     const author = trs.eq(0).find('td').eq(1).text().trim();

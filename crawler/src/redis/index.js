@@ -25,9 +25,12 @@ const sscanAsync = promisify(client.sscan).bind(client);
 const lpushAsync = promisify(client.lpush).bind(client);
 const delAsync = promisify(client.del).bind(client);
 const ltrimAsync = promisify(client.ltrim).bind(client);
-
+const hsetAsync = promisify(client.hset).bind(client);
+const scardAsync = promisify(client.scard).bind(client);
 
 Object.assign(client, {
+    scardAsync,
+    hsetAsync,
     ltrimAsync,
     delAsync,
     lpushAsync,

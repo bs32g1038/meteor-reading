@@ -1,5 +1,6 @@
 node_modules
 images/**
+*.log
 !.gitkeep
 logs/**
 yarn.lock

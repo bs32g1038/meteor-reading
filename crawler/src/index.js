@@ -20,21 +20,22 @@ const quitRedis = (isNovelSpiderEnd, isChapterSpiderEnd) => {
     const novelTime = setInterval(async () => {
         const len = await novelSpider.writeData(novelSpider.dbInsertMaxLimit);
         if (len <= novelSpider.dbInsertMaxLimit && isNovelSpiderEnd) {
-            clearInterval(novelTime);
             await novelSpider.writeData(-1); // 全部写入数据
             quitRedis(isNovelSpiderEnd, isChapterSpiderEnd);
+            clearInterval(novelTime);
         }
     }, 80);
     await novelSpider.start().then(() => {
         isNovelSpiderEnd = true;
     });
+
     const chapteSpider = new ChapterSpider();
     const chapterTime = setInterval(async () => {
         const len = await chapteSpider.writeData(chapteSpider.dbInsertMaxLimit);
         if (len <= chapteSpider.dbInsertMaxLimit && isChapterSpiderEnd) {
-            clearInterval(chapterTime);
             await chapteSpider.writeData(-1); // 全部写入数据
             quitRedis(isNovelSpiderEnd, isChapterSpiderEnd);
+            clearInterval(chapterTime);
         }
     }, 80);
     await chapteSpider.start().then(() => {
