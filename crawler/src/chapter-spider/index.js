@@ -53,20 +53,23 @@ class ChapterSpider {
                 const _chapterContentCrawler = this.getChapterContentCrawler();
 
                 for (let data of arr) {
+                    
+                    if (!data) {
+                        continue;
+                    }
+
                     const fingerprint = utils.md5(data.novelId + trimAllSpace(data.title));
 
                     // 判断是否存在，该用于多网站爬取的时候的去重。
                     if (await redis.sismemberAsync(constant.CHAPTER_FINGERPRINT, fingerprint)) {
                         await redis.saddAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl));
-                        return Promise.resolve();
+                        continue;
                     }
 
                     if (await redis.sismemberAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl))) {
-                        return Promise.resolve();
-                    }
-                    if (!data) {
                         continue;
                     }
+                  
                     _chapterContentCrawler.queue(data.chapterUrl, { ...data, fingerprint, novelId, url });
                 }
                 return await _chapterContentCrawler.start();
