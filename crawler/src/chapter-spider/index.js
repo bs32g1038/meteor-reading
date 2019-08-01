@@ -69,9 +69,10 @@ class ChapterSpider {
                     if (await redis.sismemberAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl))) {
                         continue;
                     }
-                  
+                    
                     _chapterContentCrawler.queue(data.chapterUrl, { ...data, fingerprint, novelId, url });
                 }
+
                 return await _chapterContentCrawler.start();
             },
         });

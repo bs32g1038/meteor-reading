@@ -1,5 +1,5 @@
 const pLimit = require('p-limit');
-const axios = require('axios');
+const axios = require('../axios');
 const delay = require('delay');
 const cheerio = require('cheerio');
 
