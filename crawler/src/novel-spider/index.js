@@ -61,7 +61,7 @@ class NovelSpider {
     async crawlNovelDetail(items) {
         const _novelDetailCrawler = this.getNovelDetailCrawler();
         for (const item of items) {
-            if (await redis.sismemberAsync(constant.NOVEL_IMAGE_URL_MD5_SET, utils.md5(item.url))) {
+            if (await redis.sismemberAsync(constant.NOVEL_URL_MD5_SET, utils.md5(item.url))) {
                 logger.novel.info(`已经缓存小说：${item.name}\n小说链接：${item.url}`);
                 return;
             }
@@ -199,7 +199,7 @@ class NovelSpider {
             redis
                 .multi()
                 .hset(constant.CHAPTER_PAGE_URL_MD5_MAP_NOVEL_ID, utils.md5(item.chapterListUrl), item.id)
-                .sadd(constant.CHAPTER_URL_MD5_SET, utils.md5(item.url))
+                .sadd(constant.NOVEL_URL_MD5_SET, utils.md5(item.url))
                 .sadd(constant.NOVEL_URL_LIST, item.url)
                 .sadd(constant.CHAPTER_PAGE_URL_LIST, item.chapterListUrl)
                 .sadd(
