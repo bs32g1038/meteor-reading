@@ -49,11 +49,10 @@ class ChapterSpider {
                 const novelId = await redis.hgetAsync(constant.CHAPTER_PAGE_URL_MD5_MAP_NOVEL_ID, utils.md5(url));
 
                 logger.chapter.info(`正在抓取小说${novelId}的章节数据\n小说章节列表url：${url}`);
-                
+
                 const _chapterContentCrawler = this.getChapterContentCrawler();
 
                 for (let data of arr) {
-                    
                     if (!data) {
                         continue;
                     }
@@ -69,7 +68,7 @@ class ChapterSpider {
                     if (await redis.sismemberAsync(constant.CHAPTER_URL_MD5_SET, utils.md5(data.chapterUrl))) {
                         continue;
                     }
-                    
+
                     _chapterContentCrawler.queue(data.chapterUrl, { ...data, fingerprint, novelId, url });
                 }
 
@@ -175,6 +174,9 @@ class ChapterSpider {
                                 order: [['index', 'DESC']],
                             })
                             .then(async chapter => {
+                                if (!chapter && !chapter.id) {
+                                    return;
+                                }
                                 const sum_words = await models.chapter.sum('sum_words', {
                                     where: { novel_id: novelId },
                                 });
