@@ -110,7 +110,7 @@ export default {
                 this.isLoading = true;
                 const arr = this.chapters.filter(item => {
                     // 一个id为字符串，一个为整型
-                    return this.curChapterRead.id === item.id;
+                    return Number(this.curChapterRead.id) === item.id;
                 });
                 if (arr.length >= 1) {
                     if (this.nextChapter && this.nextChapter.id) {
