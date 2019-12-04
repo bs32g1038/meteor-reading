@@ -8,13 +8,13 @@ if (typeof window !== 'undefined') {
     baseUrl = 'http://127.0.0.1:8080/v1/api';
     // 正式环境下的域名
     if (process.env.NODE_ENV === 'production') {
-        baseUrl = 'http://read.lizc.me/v1/api';
+        baseUrl = 'http://www.icoolstar.com/v1/api';
     }
 }
 const instance = axios.create({
     baseURL: baseUrl
 });
-instance.defaults.timeout = 3000;
+instance.defaults.timeout = 10000;
 
 instance.interceptors.request.use(cg => {
     return cg;
