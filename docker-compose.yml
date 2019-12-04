@@ -4,7 +4,7 @@ services:
     image: bs32g1038/meteor-reading-webapp:v1
     command: npm run start
     depends_on:
-      - server
+      - crawler
     volumes:
       - ../data/meteor-reading/crawler-images:/code/public/crawler-images
   crawler:
@@ -23,7 +23,7 @@ services:
   nginx:
     image: bs32g1038/meteor-reading-nginx:v1
     depends_on:
-      - server
+      - crawler
       - webapp
     ports:
       - 80:80

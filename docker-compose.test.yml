@@ -4,7 +4,7 @@ services:
     build: ./webapp
     command: npm run start
     depends_on:
-      - server
+      - crawler
     volumes:
       - ../data/meteor-reading/crawler-images:/public/crawler-images
   crawler:
@@ -21,7 +21,7 @@ services:
   nginx:
     build: ./nginx
     depends_on:
-      - server
+      - crawler
     ports:
       - 80:80
       - 443:443
