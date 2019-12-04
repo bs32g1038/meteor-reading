@@ -1,19 +1,5 @@
 version: '3'
 services:
-  server:
-    build: ./server
-    volumes:
-      - ../data/meteor-reading/statics:/code/statics
-      - ../data/meteor-reading/logs/server:/code/logs
-    depends_on:
-      - db
-      - redis
-    environment:
-      BIND: 0.0.0.0:8000
-      LOG_LEVEL: error
-      APP_MODULE: app.main:app
-      REDIS: redis://redis
-      DB: postgresql://postgres:123456@db/read_dev
   webapp:
     build: ./webapp
     command: npm run start

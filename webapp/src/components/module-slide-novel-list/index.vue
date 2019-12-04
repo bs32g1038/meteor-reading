@@ -5,7 +5,7 @@
                 <li v-for="item in items" :key="item.id" class="module-slide-li">
                     <a :href="`/book/detail/${item.id}`" class="module-slide-a">
                         <img
-                            :src="`/public/novel-images/${item.pic}`"
+                            :src="item.picUrl"
                             class="module-slide-img"
                             :alt="item.name"
                         >

@@ -1,8 +1,5 @@
 version: '3'
 services:
-  server:
-    build: ./server
-    image: bs32g1038/meteor-reading-server:v1
   webapp:
     build: ./webapp
     image: bs32g1038/meteor-reading-webapp:v1

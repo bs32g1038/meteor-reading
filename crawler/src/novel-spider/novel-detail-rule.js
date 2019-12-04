@@ -7,12 +7,14 @@
 const Joi = require('@hapi/joi');
 
 const schema = Joi.object().keys({
+    name: Joi.string().min(1).max(200).required(),
     summary: Joi.string().default(''),
     author: Joi.string().min(1).max(200).required(),
     tagId: Joi.number().min(1).max(10).required(),
     picUrl: Joi.string().min(1).max(200).required(),
     status: Joi.number().min(0).max(1).required(),
-    sumWords: Joi.number().required()
+    sumWords: Joi.number().required(),
+    lastUpdatedAt: Joi.string().default('') 
 });
 
 const TAG = {
@@ -32,6 +34,7 @@ const TAG = {
 const STATUS = { '连载中': 0, '完本': 1 };
 
 exports.parse = ($) => {
+    const name = $('#content').find('dd').eq(0).text().replace(' 全文阅读', '');
     const trs = $('#at').find('tr');
     const summary = $('#sidename').prev('p').text().trim();
     const author = trs.eq(0).find('td').eq(1).text().trim();
@@ -39,13 +42,16 @@ exports.parse = ($) => {
     const picUrl = $('#content').find('a img').attr('src');
     const status = trs.eq(0).find('td').eq(2).text().trim();
     const sumWords = trs.eq(1).find('td').eq(1).text().trim().replace('字', '');
+    const lastUpdatedAt = trs.eq(1).find('td').eq(2).text().trim();
     const result = schema.validate({
         picUrl,
         summary,
         tagId: TAG[tagId],
         author,
         status: STATUS[status],
-        sumWords
+        sumWords,
+        name,
+        lastUpdatedAt
     });
     if (result.error) {
         return null;

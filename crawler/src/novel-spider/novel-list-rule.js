@@ -5,6 +5,7 @@
  * return []
  */
 const config = require('../config');
+const pathToRegex = require('path-to-regex');
 
 exports.getAimUrl = (page) => {
     return config.AIM_LIST_PAGE_URL.replace('${page}', page);
@@ -19,10 +20,14 @@ exports.parse = ($) => {
         const name = $(this).find('td').first().children('a').text().trim();
         const url = $(this).find('td').first().children('a').attr('href').trim();
         const chapterListUrl = $(this).find('td').eq(1).children('a').attr('href').trim();
+
+        const result  = new pathToRegex('https://www.ddxsku.com/xiaoshuo/:id.html').match(url);
+
         arr.push({
             name,
             url,
-            chapterListUrl
+            chapterListUrl,
+            id: result.id
         });
     });
     return arr;

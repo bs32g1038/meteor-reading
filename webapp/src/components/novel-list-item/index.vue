@@ -1,7 +1,7 @@
 <template>
     <router-link :to="`/book/detail/${item.id}`" class="NovelListItem">
         <div class="NovelListItem__thumb">
-            <img :src="`/public/novel-images/${item.pic}`" :alt="item.name">
+            <img :src="item.picUrl" :alt="item.name">
         </div>
         <div class="NovelListItem__content">
             <h2 class="NovelListItem__name">{{ item.name }}</h2>

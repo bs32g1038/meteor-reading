@@ -1,9 +1,9 @@
 import axios from '../utils/axios';
 
 export default class Book {
-    static fetchReadData(chapterId) {
+    static fetchReadData(novelId, chapterId) {
         return axios
-            .get(`/book/read/${chapterId}`);
+            .get(`/book/${novelId}/read/${chapterId}`);
     }
 
     static fetchBookDetail(id) {

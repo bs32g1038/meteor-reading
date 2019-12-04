@@ -12,7 +12,7 @@
                 class="item-body-novel"
             >
                 <div class="item-body-novel-thumb">
-                    <img :src="`/public/novel-images/${item.pic}`" alt>
+                    <img :src="item.picUrl">
                 </div>
                 <div class="item-body-novel-content">
                     <h2 class="novel-name">{{ item.name }}</h2>

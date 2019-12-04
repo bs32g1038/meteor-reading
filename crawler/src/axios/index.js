@@ -41,7 +41,7 @@ axios.interceptors.request.use(function (config) {
 
 
 const instance = axios.create({
-    timeout: 4000,
+    timeout: 10000,
 });
 
 module.exports = instance;

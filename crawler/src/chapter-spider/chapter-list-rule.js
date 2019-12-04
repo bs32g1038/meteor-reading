@@ -6,7 +6,7 @@ exports.parse = ($) => {
     $('#at').find('td').each(function (i) {
         const title = $(this).children('a').text().trim();
         const chapterUrl = $(this).children('a').attr('href').trim();
-        const reg = pathToRegexp('https://www.23us.so/files/article/html/:num/:novelId/:chapterId.html');
+        const reg = pathToRegexp('https://www.ddxsku.com/files/article/html/:num/:novelId/:chapterId.html');
         const rs = reg.exec(chapterUrl);  // 章节id
         if (!rs || rs.length < 3) {
             logger.chapter_error.error('网站链接结构发生改变，退出程序');
@@ -18,7 +18,8 @@ exports.parse = ($) => {
         arr.push({
             chapterUrl: chapterUrl,
             title: title,
-            index: rs[3]
+            index: rs[3],
+            id: rs[3] 
         });
     });
     return arr;

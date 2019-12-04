@@ -34,7 +34,7 @@
                     error-text="请求失败，点击重新加载"
                 >
                     <li class="chapter-li" v-for="item in chapters" :key="item.id">
-                        <router-link :to="`/book/read/${item.id}`" class="chapter-li-a">
+                        <router-link :to="`/book/${novel.id}/read/${item.id}`" class="chapter-li-a">
                             <span class="chapter-index">{{ item.title }}</span>
                         </router-link>
                     </li>

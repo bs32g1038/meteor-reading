@@ -27,7 +27,7 @@
         <div class="baseline" v-if="isFinished">------当前章节是最后一章------</div>
         <page-tool
             :fontSize="fontSize"
-            :novel_id="novel.id || -1"
+            :novel_id="novel.id || '-1'"
             @on-font-size="fontSize => this.fontSize = fontSize"
         ></page-tool>
     </div>
@@ -63,18 +63,28 @@ export default {
     },
     asyncData({ store, route }) {
         if (!store.state.bookRead.isEnter) {
-            store.dispatch('bookRead/fetchReadData', route.params.chapterId).then(_ => {
-                store.dispatch('bookRead/setIsEnterData');
-            });
+            store
+                .dispatch('bookRead/fetchReadData', {
+                    novelId: route.params.novelId,
+                    chapterId: route.params.chapterId,
+                })
+                .then(_ => {
+                    store.dispatch('bookRead/setIsEnterData');
+                });
         }
     },
     mounted() {
         this.$store.dispatch('setLoading', true);
-        return this.$store.dispatch('bookRead/fetchReadData', this.$route.params.chapterId).then(() => {
-            this.$store.dispatch('bookRead/setIsEnterData');
-            this.$store.dispatch('setLoading', false);
-            this.curChapterRead = this.$store.state.bookRead.chapter;
-        });
+        return this.$store
+            .dispatch('bookRead/fetchReadData', {
+                novelId: this.$route.params.novelId,
+                chapterId: this.$route.params.chapterId,
+            })
+            .then(() => {
+                this.$store.dispatch('bookRead/setIsEnterData');
+                this.$store.dispatch('setLoading', false);
+                this.curChapterRead = this.$store.state.bookRead.chapter;
+            });
     },
     destroyed() {
         this.$store.dispatch('bookRead/initData');
@@ -110,12 +120,15 @@ export default {
                 this.isLoading = true;
                 const arr = this.chapters.filter(item => {
                     // 一个id为字符串，一个为整型
-                    return Number(this.curChapterRead.id) === item.id;
+                    return this.curChapterRead.id === item.id;
                 });
                 if (arr.length >= 1) {
                     if (this.nextChapter && this.nextChapter.id) {
                         return this.$store
-                            .dispatch('bookRead/fetchReadData', this.nextChapter.id)
+                            .dispatch('bookRead/fetchReadData', {
+                                novelId: this.$route.params.novelId,
+                                chapterId: this.nextChapter.id,
+                            })
                             .then(() => {
                                 this.isLoading = false;
                                 this.$nextTick(_ => {

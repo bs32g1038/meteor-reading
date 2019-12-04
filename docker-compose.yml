@@ -1,18 +1,5 @@
 version: '3'
 services:
-  server:
-    image: bs32g1038/meteor-reading-server:v1
-    volumes:
-      - ../data/meteor-reading/statics:/code/statics
-      - ../data/meteor-reading/logs/server:/code/logs
-    depends_on:
-      - db
-      - redis
-    environment:
-      LOG_LEVEL: error
-      APP_MODULE: app.main:app
-      REDIS: redis://redis
-      DB: postgresql://postgres:123456@db/read_dev
   webapp:
     image: bs32g1038/meteor-reading-webapp:v1
     command: npm run start

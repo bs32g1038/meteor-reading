@@ -4,7 +4,7 @@
         <div class="book-detail-info">
             <img :src="`/public/novel-images/${novel.pic}`" class="book-cover-blur" />
             <div class="book-layout">
-                <img :src="`/public/novel-images/${novel.pic}`" class="book-cover" />
+                <img :src="novel.picUrl" class="book-cover" />
                 <div class="book-cell">
                     <h2 class="book-title">{{ novel.name }}</h2>
                     <div class="book-author">
@@ -24,7 +24,7 @@
                     <p class="book-meta">
                         更新时间
                         <span class="char-pipe">|</span>
-                        {{ parseTime((lastChapter && lastChapter.createdAt) || new Date()) }}
+                        {{ novel.lastUpdatedAt || new Date() }}
                     </p>
                 </div>
             </div>
@@ -35,7 +35,7 @@
                             type="default"
                             class="red"
                             size="small"
-                            :to="`/book/read/${startChapter && startChapter.id}`"
+                            :to="`/book/${novel.id}/read/${startChapter && startChapter.id}`"
                         >开始阅读</van-button>
                     </li>
                     <li class="btn-group-cell">

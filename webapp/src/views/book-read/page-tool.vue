@@ -51,7 +51,7 @@ export function getFontSizeInStorage() {
 export default {
     props: {
         novel_id: {
-            type: Number,
+            type: String,
             required: true
         },
         fontSize: {

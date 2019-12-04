@@ -6,15 +6,15 @@ const getInitState = () => ({
     chapter: {},
     chapters: [],
     nextChapter: {},
-    preChapter: {}
+    preChapter: {},
 });
 
 export default {
     namespaced: true,
     state: getInitState(),
     actions: {
-        fetchReadData({ commit }, chapterId) {
-            return bookApi.fetchReadData(chapterId).then(_ => {
+        fetchReadData({ commit }, { novelId, chapterId }) {
+            return bookApi.fetchReadData(novelId, chapterId).then(_ => {
                 return commit('setReadData', _.data.data);
             });
         },
@@ -23,7 +23,7 @@ export default {
         },
         setIsEnterData({ commit }) {
             return commit('setIsEnterData');
-        }
+        },
     },
     mutations: {
         setReadData(state, data) {
@@ -43,6 +43,6 @@ export default {
         },
         setIsEnterData(state) {
             state.isEnter = true;
-        }
-    }
+        },
+    },
 };

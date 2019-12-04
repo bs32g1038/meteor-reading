@@ -62,7 +62,7 @@ const router = new Router({
                     component: BookDetail
                 },
                 {
-                    path: '/book/read/:chapterId',
+                    path: '/book/:novelId/read/:chapterId',
                     name: 'book-read',
                     component: BookRead
                 },
