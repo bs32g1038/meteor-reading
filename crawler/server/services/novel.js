@@ -58,13 +58,7 @@ exports.bookStore = async (page, tagId) => {
         url = `https://www.ddxsku.com/top/allvote_${page}.html`;
     }
     const [data] = await new NovelCrawler([url]).start();
-    const arr = data.filter(item => {
-        if (item) {
-            return true;
-        }
-        return false;
-    });
-    return arr;
+    return filterArrayEmptyObject(data);
 };
 
 exports.getNovelDetailById = async id => {
@@ -87,7 +81,7 @@ exports.getNovelDetailById = async id => {
 
     return {
         novel: { ...novel, id },
-        otherItems,
+        otherItems: filterArrayEmptyObject(otherItems),
         lastChapter: chapters[0][chapters[0].length - 1],
         startChapter: chapters[0][0],
     };
@@ -97,13 +91,13 @@ exports.getCatalogByNovelId = async id => {
     const url = `https://www.ddxsku.com/xiaoshuo/${id}.html`;
     const [novel] = await new NovelCrawler().crawlNovelDetail([{ url }]);
 
-    const chapters = await new ChapterCrawler(
+    const [chapters] = await new ChapterCrawler(
         `https://www.ddxsku.com/files/article/html/${id.substring(0, 2)}/${id}/index.html`
     ).start();
 
     return {
         novel: { ...novel, id },
-        chapters: chapters[0],
+        chapters: filterArrayEmptyObject(chapters),
     };
 };
 
@@ -115,12 +109,14 @@ exports.getChapterDataById = async (novelId, chapterId) => {
         `https://www.ddxsku.com/files/article/html/${novelId.substring(0, 2)}/${novelId}/${chapterId}.html`
     );
 
-    const [chapters] = await new ChapterCrawler(
+    let [chapters] = await new ChapterCrawler(
         `https://www.ddxsku.com/files/article/html/${novelId.substring(0, 2)}/${novelId}/index.html`
     ).start();
 
     let prevChapter = null,
         nextChapter = null;
+
+    chapters = filterArrayEmptyObject(chapters);
 
     for (let i = 0; i < chapters.length; i++) {
         if (chapters[i].id === chapterId) {
