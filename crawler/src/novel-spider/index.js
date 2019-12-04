@@ -3,6 +3,13 @@ const logger = require('../logger');
 const novelListRule = require('./novel-list-rule');
 const novelDetailRule = require('./novel-detail-rule');
 const Crawler = require('../crawler');
+const utils = require('utility');
+let LRU = require('lru-cache'),
+    options = {
+        max: 5000,
+        maxAge: 1000 * 60 * 60 * 24,
+    },
+    cache = new LRU(options);
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -54,7 +61,13 @@ class NovelSpider {
     async crawlNovelDetail(items) {
         const _novelDetailCrawler = this.getNovelDetailCrawler();
         let count = 0;
+        const arr = [];
         for (const item of items) {
+            const data = cache.get(utils.md5(item.url));
+            if (data) {
+                arr.push(data);
+                continue;
+            }
             if (this.itemCount && count >= this.itemCount) {
                 break;
             }
@@ -62,7 +75,7 @@ class NovelSpider {
             logger.novel.info(`正在抓取小说：${item.name}\n小说链接：${item.url}`);
             _novelDetailCrawler.queue(item.url, item);
         }
-        return await _novelDetailCrawler.start();
+        return arr.concat(await _novelDetailCrawler.start());
     }
 
     getNovelDetailCrawler() {
@@ -73,7 +86,9 @@ class NovelSpider {
                     logger.novel_error.error(item.url, error.message);
                     return Promise.reject(error);
                 }
-                return await this.parseDetailData($, item);
+                const data = await this.parseDetailData($, item);
+                cache.set(utils.md5(item.url), data);
+                return data;
             },
         });
     }

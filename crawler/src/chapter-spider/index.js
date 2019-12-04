@@ -1,13 +1,17 @@
 'use strict';
 const utils = require('utility');
-const constant = require('../constant');
-const redis = require('../redis');
-const models = require('../models');
 const logger = require('../logger');
-const { request, trimAllSpace } = require('../utils');
+const { request } = require('../utils');
 const chapterListRule = require('./chapter-list-rule');
 const chapterDetailRule = require('./chapter-detail-rule');
 const Crawler = require('../crawler');
+
+let LRU = require('lru-cache'),
+    options = {
+        max: 5000,
+        maxAge: 1000 * 60 * 60 * 24,
+    },
+    cache = new LRU(options);
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -28,8 +32,11 @@ class ChapterSpider {
     }
 
     async crawlChapters() {
+        if (cache.get(utils.md5(this.aimUrl))) {
+            return [cache.get(utils.md5(this.aimUrl))];
+        }
         const _crawler = this.getChapterCrawler();
-        _crawler.queue(this.aimUrl);
+        _crawler.queue(this.aimUrl, this.aimUrl);
         return await _crawler.start();
     }
 
@@ -41,14 +48,16 @@ class ChapterSpider {
                     logger.chapter_error.error(url, error.message);
                     return Promise.reject(error);
                 }
-                return this._chapterLinkListRule.parse($);
+                const chapterList = this._chapterLinkListRule.parse($);
+                cache.set(utils.md5(url), chapterList);
+                return chapterList;
             },
         });
     }
 
     async crawlChapterContent(chapterUrl) {
         const _crawler = this.getChapterContentCrawler();
-        _crawler.queue(chapterUrl);
+        _crawler.queue(chapterUrl, chapterUrl);
         return await _crawler.start();
     }
 

@@ -1,5 +1,20 @@
 const NovelCrawler = require('../../src/novel-spider');
 const ChapterCrawler = require('../../src/chapter-spider');
+let LRU = require('lru-cache'),
+    options = {
+        max: 5000,
+        maxAge: 1000 * 60 * 60 * 24,
+    },
+    cache = new LRU(options);
+
+const filterArrayEmptyObject = arr => {
+    return arr.filter(item => {
+        if (item) {
+            return true;
+        }
+        return false;
+    });
+};
 
 const xuanhuanUrl = 'https://www.ddxsku.com/list/1_1.html';
 const xianxiaUrl = 'https://www.ddxsku.com/list/2_1.html';
@@ -9,11 +24,20 @@ const hotUrl = 'https://www.ddxsku.com/top/monthvisit_1.html';
 const guessUrl = 'https://www.ddxsku.com/top/postdate_1.html';
 
 exports.getNovelList = async () => {
-    const [xuanhuan, xianxia, junshi, dushi, hotRecommends, guessRecommends] = await new NovelCrawler(
-        [xuanhuanUrl, xianxiaUrl, junshiUrl, dushiUrl, hotUrl, guessUrl],
-        5
-    ).start();
-    return {
+    const d = cache.get('home-data');
+    if (d) {
+        return d;
+    }
+
+    const arrs = await new NovelCrawler([xuanhuanUrl, xianxiaUrl, junshiUrl, dushiUrl, hotUrl, guessUrl], 5).start();
+
+    const newArrs = arrs.map(arr => {
+        return filterArrayEmptyObject(arr);
+    });
+
+    const [xuanhuan, xianxia, junshi, dushi, hotRecommends, guessRecommends] = newArrs;
+
+    const data = {
         categoryRecommend: {
             xuanhuan,
             xianxia,
@@ -23,6 +47,9 @@ exports.getNovelList = async () => {
         guessRecommends,
         hotRecommends,
     };
+
+    cache.set('home-data', data);
+    return data;
 };
 
 exports.bookStore = async (page, tagId) => {
@@ -41,8 +68,15 @@ exports.bookStore = async (page, tagId) => {
 };
 
 exports.getNovelDetailById = async id => {
+    const OTHER_ITEMS_KEY = Symbol('other-items');
+    let otherItems;
+    if (cache.get(OTHER_ITEMS_KEY)) {
+        otherItems = cache.get(OTHER_ITEMS_KEY);
+    }
     const otherItemsUrl = 'https://www.ddxsku.com/top/allvote_1.html';
-    const [otherItems] = await new NovelCrawler([otherItemsUrl], 10).start();
+    const [_otherItems] = await new NovelCrawler([otherItemsUrl], 10).start();
+    otherItems = _otherItems;
+    cache.set(OTHER_ITEMS_KEY, otherItems);
 
     const url = `https://www.ddxsku.com/xiaoshuo/${id}.html`;
     const [novel] = await new NovelCrawler().crawlNovelDetail([{ url }]);
