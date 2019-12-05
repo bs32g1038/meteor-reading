@@ -14,7 +14,8 @@ const schema = Joi.object().keys({
     picUrl: Joi.string().min(1).max(200).required(),
     status: Joi.number().min(0).max(1).required(),
     sumWords: Joi.number().required(),
-    lastUpdatedAt: Joi.string().default('') 
+    lastUpdatedAt: Joi.string().default(''),
+    sumClickCount: Joi.number().required()
 });
 
 const TAG = {
@@ -43,6 +44,7 @@ exports.parse = ($) => {
     const status = trs.eq(0).find('td').eq(2).text().trim();
     const sumWords = trs.eq(1).find('td').eq(1).text().trim().replace('字', '');
     const lastUpdatedAt = trs.eq(1).find('td').eq(2).text().trim();
+    const sumClickCount = trs.eq(2).find('td').eq(0).text().trim();
     const result = schema.validate({
         picUrl,
         summary,
@@ -51,7 +53,8 @@ exports.parse = ($) => {
         status: STATUS[status],
         sumWords,
         name,
-        lastUpdatedAt
+        lastUpdatedAt,
+        sumClickCount
     });
     if (result.error) {
         return null;

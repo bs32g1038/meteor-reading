@@ -41,7 +41,7 @@ exports.getNovelList = async () => {
     });
 
     const data = _db.sort((a, b) => {
-        return a.name < b.name;
+        return a.sumClickCount >= b.sumClickCount;
     });
 
     const guessRecommends = _.slice(data, 0, 5).map(item => {
