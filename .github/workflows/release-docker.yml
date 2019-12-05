@@ -9,8 +9,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: release meteor-reading-server docker
+    - name: Configure git
+      run: git config --global core.symlinks true
+    - name: Clone repository
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+        submodules: true
+    - name: Release meteor-reading-server docker
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
         name: bs32g1038/meteor-reading-server:v1
@@ -19,7 +25,7 @@ jobs:
         workdir: ./meteor-reading-server
       env:
         CI: true
-    - name: release meteor-reading-webapp docker
+    - name: Release meteor-reading-webapp docker
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
         name: bs32g1038/meteor-reading-webapp:v1
