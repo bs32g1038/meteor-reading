@@ -8,8 +8,7 @@ const Crawler = require('../crawler');
 
 let LRU = require('lru-cache'),
     options = {
-        max: 5000,
-        maxAge: 1000 * 60 * 60 * 24,
+        max: 10000,
     },
     cache = new LRU(options);
 
@@ -32,9 +31,6 @@ class ChapterSpider {
     }
 
     async crawlChapters() {
-        if (cache.get(utils.md5(this.aimUrl))) {
-            return [cache.get(utils.md5(this.aimUrl))];
-        }
         const _crawler = this.getChapterCrawler();
         _crawler.queue(this.aimUrl, this.aimUrl);
         return await _crawler.start();
@@ -48,15 +44,16 @@ class ChapterSpider {
                     logger.chapter_error.error(url, error.message);
                     return Promise.reject(error);
                 }
-                const chapterList = this._chapterLinkListRule.parse($);
-                cache.set(utils.md5(url), chapterList);
-                return chapterList;
+                return this._chapterLinkListRule.parse($);
             },
         });
     }
 
     async crawlChapterContent(chapterUrl) {
         const _crawler = this.getChapterContentCrawler();
+        if (cache.get(utils.md5(chapterUrl))) {
+            return [cache.get(utils.md5(chapterUrl))];
+        }
         _crawler.queue(chapterUrl, chapterUrl);
         return await _crawler.start();
     }
@@ -69,6 +66,7 @@ class ChapterSpider {
                     return logger.chapter_error.error(url, error.message);
                 }
                 const res = this._chapterDetailRule.parse($);
+                cache.set(utils.md5(url), res);
                 return res;
             },
         });

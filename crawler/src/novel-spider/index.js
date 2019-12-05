@@ -2,14 +2,17 @@
 const logger = require('../logger');
 const novelListRule = require('./novel-list-rule');
 const novelDetailRule = require('./novel-detail-rule');
+const ChapterSpider = require('../chapter-spider');
+
 const Crawler = require('../crawler');
 const utils = require('utility');
 let LRU = require('lru-cache'),
     options = {
         max: 5000,
-        maxAge: 1000 * 60 * 60 * 24,
     },
     cache = new LRU(options);
+
+exports.cache = cache;
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -63,11 +66,6 @@ class NovelSpider {
         let count = 0;
         const arr = [];
         for (const item of items) {
-            const data = cache.get(utils.md5(item.url));
-            if (data) {
-                arr.push(data);
-                continue;
-            }
             if (this.itemCount && count >= this.itemCount) {
                 break;
             }
@@ -81,14 +79,21 @@ class NovelSpider {
     getNovelDetailCrawler() {
         return new Crawler({
             maxConnections: 20,
+            rateLimit: 50 * Math.random(),
             callback: async (error, $, item) => {
                 if (error) {
                     logger.novel_error.error(item.url, error.message);
                     return Promise.reject(error);
                 }
-                const data = await this.parseDetailData($, item);
-                cache.set(utils.md5(item.url), data);
-                return data;
+                try {
+                    const data = await this.parseDetailData($, item);
+                    if (data) {
+                        cache.set(utils.md5(item.url), data);
+                    }
+                    return data;
+                } catch (error) {
+                    return null;
+                }
             },
         });
     }
@@ -100,11 +105,14 @@ class NovelSpider {
             return;
         }
 
+        const [chapters] = await new ChapterSpider(item.chapterListUrl).start();
+
         return {
             ...item,
             ...detailData,
+            chapters,
         };
     }
 }
 
-module.exports = NovelSpider;
+exports.NovelSpider = NovelSpider;

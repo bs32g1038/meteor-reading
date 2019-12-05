@@ -10,6 +10,8 @@ server.use(restify.plugins.acceptParser(server.acceptable));
 server.use(restify.plugins.queryParser());
 server.use(restify.plugins.bodyParser());
 
+novel.crontabCrawler();
+
 server.get('/v1/api/home/info', async function(req, res, next) {
     res.json({
         code: 20000,

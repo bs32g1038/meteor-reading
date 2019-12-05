@@ -1,43 +1,58 @@
-const NovelCrawler = require('../../src/novel-spider');
+const spider = require('../../src/novel-spider');
+const NovelCrawler = spider.NovelSpider;
 const ChapterCrawler = require('../../src/chapter-spider');
-let LRU = require('lru-cache'),
-    options = {
-        max: 5000,
-        maxAge: 1000 * 60 * 60 * 24,
-    },
-    cache = new LRU(options);
+const _ = require('lodash');
+const utils = require('utility');
 
-const filterArrayEmptyObject = arr => {
-    return arr.filter(item => {
-        if (item) {
-            return true;
+exports.crontabCrawler = async () => {
+    let isCrawing = false;
+    const crawler = async () => {
+        if (isCrawing) {
+            return;
         }
-        return false;
-    });
+        isCrawing = true;
+        const urlArr = [];
+        for (let i = 0; i < 20; i++) {
+            urlArr.push(`https://www.ddxsku.com/list/1_${i}.html`);
+            urlArr.push(`https://www.ddxsku.com/list/2_${i}.html`);
+            urlArr.push(`https://www.ddxsku.com/list/3_${i}.html`);
+            urlArr.push(`https://www.ddxsku.com/list/4_${i}.html`);
+        }
+        await new NovelCrawler(urlArr).start();
+        // eslint-disable-next-line require-atomic-updates
+        isCrawing = false;
+    };
+    crawler();
+    setInterval(crawler, 1000 * 60 * 60);
 };
 
-const xuanhuanUrl = 'https://www.ddxsku.com/list/1_1.html';
-const xianxiaUrl = 'https://www.ddxsku.com/list/2_1.html';
-const junshiUrl = 'https://www.ddxsku.com/list/3_1.html';
-const dushiUrl = 'https://www.ddxsku.com/list/4_1.html';
-const hotUrl = 'https://www.ddxsku.com/top/monthvisit_1.html';
-const guessUrl = 'https://www.ddxsku.com/top/postdate_1.html';
-
 exports.getNovelList = async () => {
-    const d = cache.get('home-data');
-    if (d) {
-        return d;
-    }
+    const _db = spider.cache.values();
 
-    const arrs = await new NovelCrawler([xuanhuanUrl, xianxiaUrl, junshiUrl, dushiUrl, hotUrl, guessUrl], 5).start();
-
-    const newArrs = arrs.map(arr => {
-        return filterArrayEmptyObject(arr);
+    const [xuanhuan, xianxia, junshi, dushi] = [1, 2, 3, 4].map(tagId => {
+        return _db
+            .filter(item => {
+                return item.tagId === tagId;
+            })
+            .slice(0, 10)
+            .map(item => {
+                return _.omit(item, 'chapters');
+            });
     });
 
-    const [xuanhuan, xianxia, junshi, dushi, hotRecommends, guessRecommends] = newArrs;
+    const data = _db.sort((a, b) => {
+        return a.name < b.name;
+    });
 
-    const data = {
+    const guessRecommends = _.slice(data, 0, 5).map(item => {
+        return _.omit(item, 'chapters');
+    });
+
+    const hotRecommends = _.slice(data, 5, 10).map(item => {
+        return _.omit(item, 'chapters');
+    });
+
+    const temp = {
         categoryRecommend: {
             xuanhuan,
             xianxia,
@@ -48,75 +63,78 @@ exports.getNovelList = async () => {
         hotRecommends,
     };
 
-    cache.set('home-data', data);
-    return data;
+    return temp;
 };
 
 exports.bookStore = async (page, tagId) => {
-    let url = `https://www.ddxsku.com/list/${tagId}_${page}.html`;
+    const values = spider.cache.values();
     if (tagId == 0) {
-        url = `https://www.ddxsku.com/top/allvote_${page}.html`;
+        return values.slice(20 * (page - 1), 20 * page).map(item => {
+            return _.omit(item, 'chapters');
+        });
     }
-    const [data] = await new NovelCrawler([url]).start();
-    return filterArrayEmptyObject(data);
+    return values
+        .filter(item => {
+            return item.tagId === tagId;
+        })
+        .slice(20 * (page - 1), 20 * page)
+        .map(item => {
+            return _.omit(item, 'chapters');
+        });
 };
 
 exports.getNovelDetailById = async id => {
-    const OTHER_ITEMS_KEY = Symbol('other-items');
-    let otherItems;
-    if (cache.get(OTHER_ITEMS_KEY)) {
-        otherItems = cache.get(OTHER_ITEMS_KEY);
-    }
-    const otherItemsUrl = 'https://www.ddxsku.com/top/allvote_1.html';
-    const [_otherItems] = await new NovelCrawler([otherItemsUrl], 10).start();
-    otherItems = _otherItems;
-    cache.set(OTHER_ITEMS_KEY, otherItems);
+    const _db = spider.cache;
 
-    const url = `https://www.ddxsku.com/xiaoshuo/${id}.html`;
-    const [novel] = await new NovelCrawler().crawlNovelDetail([{ url }]);
+    let novel = _db.get(utils.md5(`https://www.ddxsku.com/xiaoshuo/${id}.html`));
+    const chapters = novel.chapters;
+    novel = _.omit(novel, 'chapters');
 
-    const chapters = await new ChapterCrawler(
-        `https://www.ddxsku.com/files/article/html/${id.substring(0, 2)}/${id}/index.html`
-    ).start();
+    const otherItems = _db
+        .values()
+        .slice(0, 10)
+        .map(item => {
+            return {
+                name: item.name,
+                author: item.author,
+                picUrl: item.picUrl,
+                id: item.index,
+            };
+        });
 
     return {
         novel: { ...novel, id },
-        otherItems: filterArrayEmptyObject(otherItems),
-        lastChapter: chapters[0][chapters[0].length - 1],
-        startChapter: chapters[0][0],
+        otherItems,
+        lastChapter: chapters[chapters.length - 1],
+        startChapter: chapters[0],
     };
 };
 
 exports.getCatalogByNovelId = async id => {
-    const url = `https://www.ddxsku.com/xiaoshuo/${id}.html`;
-    const [novel] = await new NovelCrawler().crawlNovelDetail([{ url }]);
+    const _db = spider.cache;
 
-    const [chapters] = await new ChapterCrawler(
-        `https://www.ddxsku.com/files/article/html/${id.substring(0, 2)}/${id}/index.html`
-    ).start();
+    let novel = _db.get(utils.md5(`https://www.ddxsku.com/xiaoshuo/${id}.html`));
+    const chapters = novel.chapters;
+    novel = _.omit(novel, 'chapters');
 
     return {
         novel: { ...novel, id },
-        chapters: filterArrayEmptyObject(chapters),
+        chapters,
     };
 };
 
 exports.getChapterDataById = async (novelId, chapterId) => {
-    const url = `https://www.ddxsku.com/xiaoshuo/${novelId}.html`;
-    const [novel] = await new NovelCrawler().crawlNovelDetail([{ url }]);
+    const _db = spider.cache;
+    let novel = _db.get(utils.md5(`https://www.ddxsku.com/xiaoshuo/${novelId}.html`));
+    const chapters = novel.chapters;
+    novel = _.omit(novel, 'chapters');
 
     const [chapter] = await new ChapterCrawler().crawlChapterContent(
         `https://www.ddxsku.com/files/article/html/${novelId.substring(0, 2)}/${novelId}/${chapterId}.html`
     );
 
-    let [chapters] = await new ChapterCrawler(
-        `https://www.ddxsku.com/files/article/html/${novelId.substring(0, 2)}/${novelId}/index.html`
-    ).start();
-
     let prevChapter = null,
         nextChapter = null;
-
-    chapters = filterArrayEmptyObject(chapters);
 
     for (let i = 0; i < chapters.length; i++) {
         if (chapters[i].id === chapterId) {
