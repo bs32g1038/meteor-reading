@@ -75,7 +75,7 @@ exports.bookStore = async (page, tagId) => {
     }
     return values
         .filter(item => {
-            return item.tagId === tagId;
+            return item.tagId == tagId;
         })
         .slice(20 * (page - 1), 20 * page)
         .map(item => {
