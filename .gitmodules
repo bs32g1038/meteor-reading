@@ -1,0 +1,6 @@
+[submodule "meteor-reading-server"]
+	path = meteor-reading-server
+	url = https://github.com/bs32g1038/meteor-reading-server.git
+[submodule "meteor-reading-webapp"]
+	path = meteor-reading-webapp
+	url = https://github.com/bs32g1038/meteor-reading-webapp.git
