@@ -1,0 +1,36 @@
+name: Release Docker CI
+
+on:
+  push:
+    branches:
+    - master
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configure git
+      run: git config --global core.symlinks true
+    - name: Clone repository
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+        submodules: true
+    - name: Release meteor-reading-server docker
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: bs32g1038/meteor-reading-server:v1
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        workdir: ./meteor-reading-server
+      env:
+        CI: true
+    - name: Release meteor-reading-webapp docker
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: bs32g1038/meteor-reading-webapp:v1
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        workdir: ./meteor-reading-webapp
+      env:
+        CI: true

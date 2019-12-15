@@ -4,32 +4,13 @@ services:
     image: bs32g1038/meteor-reading-webapp:v1
     command: npm run start
     depends_on:
-      - crawler
+      - server
+  server:
+    image: bs32g1038/meteor-reading-server:v1
     volumes:
-      - ../data/meteor-reading/crawler-images:/code/public/crawler-images
-  crawler:
-    image: bs32g1038/meteor-reading-crawler:v1
-    volumes:
-      - ../data/meteor-reading/crawler-images:/code/images
-      - ../data/meteor-reading/logs/crawler:/code/src/logs
+      - /www/meteor-reading/data/logs/crawler:/code/src/logs
+      - /www/meteor-reading/data/sqlite-db:/code/db
     command: npm run start
-    depends_on:
-      - db
-      - redis
-    environment:
-      REDIS_HOST: redis
-      DB_HOST: db
-    tty: true
-  nginx:
-    image: bs32g1038/meteor-reading-nginx:v1
-    depends_on:
-      - crawler
-      - webapp
-    ports:
-      - 80:80
-      - 443:443
-    volumes:
-      - ../data/meteor-reading/logs/nginx:/var/log/nginx
   db:
     image: postgres:11.2-alpine
     restart: always
