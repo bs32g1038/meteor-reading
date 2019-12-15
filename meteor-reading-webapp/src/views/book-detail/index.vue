@@ -2,7 +2,7 @@
     <div v-if="!isInitLoading" class="book-detail-wrap">
         <app-header :centerText="novel.name" headerClass="app-header"></app-header>
         <div class="book-detail-info">
-            <img :src="`/public/novel-images/${novel.pic}`" class="book-cover-blur" />
+            <img :src="novel.picUrl" class="book-cover-blur" />
             <div class="book-layout">
                 <img :src="novel.picUrl" class="book-cover" />
                 <div class="book-cell">
@@ -216,8 +216,7 @@ export default {
     width: 100%;
     height: 4.2rem;
     opacity: 0.1;
-    filter: blur(30px);
-    box-shadow: none;
+    filter: blur(17px);
 }
 
 .book-detail-info {
