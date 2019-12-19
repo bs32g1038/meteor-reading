@@ -28,7 +28,7 @@
                     分类推荐
                 </h3>
                 <div class="module-header-r">
-                    <router-link to="/bookstore" class="module-header-btn">更多</router-link>
+                    <router-link to="/bookstore?tagId=0" class="module-header-btn">更多</router-link>
                 </div>
             </div>
             <div class="module-body">
