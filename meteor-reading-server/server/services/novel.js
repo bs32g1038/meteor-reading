@@ -2,7 +2,6 @@ const spider = require('../../src/novel-spider');
 const NovelCrawler = spider.NovelSpider;
 const ChapterCrawler = require('../../src/chapter-spider');
 const _ = require('lodash');
-const utils = require('utility');
 const dayjs = require('dayjs');
 
 exports.crontabCrawler = async () => {
@@ -87,7 +86,7 @@ exports.bookStore = async (page, tagId) => {
 exports.getNovelDetailById = async id => {
     const _db = spider.cache;
 
-    let novel = _db.get(utils.md5(`https://www.ddxsku.com/xiaoshuo/${id}.html`));
+    let novel = _db.get(id);
     const chapters = novel.chapters;
     novel = _.omit(novel, 'chapters');
 
@@ -114,7 +113,7 @@ exports.getNovelDetailById = async id => {
 exports.getCatalogByNovelId = async id => {
     const _db = spider.cache;
 
-    let novel = _db.get(utils.md5(`https://www.ddxsku.com/xiaoshuo/${id}.html`));
+    let novel = _db.get(id);
     const chapters = novel.chapters;
     novel = _.omit(novel, 'chapters');
 
@@ -126,7 +125,7 @@ exports.getCatalogByNovelId = async id => {
 
 exports.getChapterDataById = async (novelId, chapterId) => {
     const _db = spider.cache;
-    let novel = _db.get(utils.md5(`https://www.ddxsku.com/xiaoshuo/${novelId}.html`));
+    let novel = _db.get(novelId);
     const chapters = novel.chapters;
     novel = _.omit(novel, 'chapters');
 

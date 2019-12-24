@@ -5,7 +5,6 @@ const novelDetailRule = require('./novel-detail-rule');
 const ChapterSpider = require('../chapter-spider');
 
 const Crawler = require('../crawler');
-const utils = require('utility');
 let LRU = require('lru-cache'),
     options = {
         max: 5000,
@@ -88,7 +87,7 @@ class NovelSpider {
                 try {
                     const data = await this.parseDetailData($, item);
                     if (data) {
-                        cache.set(utils.md5(item.url), data);
+                        cache.set(data.id, data);
                     }
                     return data;
                 } catch (error) {
