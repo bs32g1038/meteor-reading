@@ -52,7 +52,7 @@ class NovelSpider {
             maxConnections: 5,
             callback: async (error, $) => {
                 if (error) {
-                    logger.novel_error.error(error.message);
+                    logger.novel_error.error(error);
                     return Promise.reject(error);
                 }
                 let items = this._novelListRule.parse($);
