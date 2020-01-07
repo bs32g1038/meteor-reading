@@ -2,7 +2,7 @@ const spider = require('../../src/novel-spider');
 const NovelCrawler = spider.NovelSpider;
 const ChapterCrawler = require('../../src/chapter-spider');
 const _ = require('lodash');
-const dayjs = require('dayjs');
+const { generateRandomNumberArray } = require('../utils/helper');
 
 exports.crontabCrawler = async () => {
     let isCrawing = false;
@@ -152,20 +152,9 @@ exports.getChapterDataById = async (novelId, chapterId) => {
 
 exports.getKeyWords = () => {
     const _db = spider.cache.values();
-    return _db
-        .sort((a, b) => {
-            if (a.sumClickCount >= b.sumClickCount && dayjs(a.lastUpdatedAt).isAfter(dayjs(b.lastUpdatedAt))) {
-                return -1;
-            }
-            if (dayjs(a.lastUpdatedAt).isAfter(dayjs(b.lastUpdatedAt))) {
-                return -1;
-            }
-            return 0;
-        })
-        .slice(0, 6)
-        .map(item => {
-            return _.pick(item, 'id', 'name');
-        });
+    return generateRandomNumberArray(6, _db.length).map(i => {
+        return _.pick(_db[i], 'id', 'name');
+    });
 };
 
 exports.getSearchResult = kw => {
