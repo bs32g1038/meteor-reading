@@ -10,7 +10,12 @@
             <p>本站仅展示用于学术研究，请勿用于商业用途！</p>
             <p>本站作品收集整理自网络, 版权归属拥有者全权所有, 如侵犯了您的利益，请联系删除 - bs32g1038#163.com</p>
         </div>
-        <div class="footer-copy">copyright © 2018-2030 星点阅读</div>
+        <div class="footer-copy">
+            copyright © 2018-2030 星点阅读
+            <a href="http://www.beian.miit.gov.cn" rel="noopener noreferrer" target="_blank">
+                <span className="icon-icp"></span>粤ICP备16021965号-1
+            </a>
+        </div>
     </footer>
     <div v-else>
         <content-loader :height="100">
@@ -132,5 +137,9 @@ export default {
     text-align: center;
     color: #969ba3;
     box-sizing: border-box;
+    a {
+        color: #969ba3;
+        font-size: 12px;
+    }
 }
 </style>
