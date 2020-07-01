@@ -1,7 +1,6 @@
 <template>
     <div id="app" class="app">
-        <router-view />
-        <app-footer></app-footer>
+        hello world!
     </div>
 </template>
 
