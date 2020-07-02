@@ -5,10 +5,10 @@
 </template>
 
 <script>
-import AppFooter from '@/components/app-footer';
-export default {
-    components: {
-        AppFooter,
-    },
-};
+// import AppFooter from '@/components/app-footer';
+// export default {
+//     components: {
+//         AppFooter,
+//     },
+// };
 </script>
